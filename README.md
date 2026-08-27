@@ -49,7 +49,7 @@ docker run --detach \
   --env CUSTOM_RENDEZVOUS_SERVER=rustdesk.example.com:21116 \
   --env RELAY_SERVER=rustdesk.example.com:21117 \
   --env API_SERVER=api.example.com \
-  --env KEY='votre-clé-publique' \
+  --env KEY='ihr-oeffentlicher-schluessel' \
   pmietlicki/docker-rustdesk-web-client:v1
 ```
 

@@ -27,7 +27,7 @@ run_entrypoint "rd.example.com" "https"
 grep -Fq 'server rd.example.com:21114;' "$TEMP_DIR/default.conf"
 grep -Fq 'proxy_pass https://api;' "$TEMP_DIR/default.conf"
 if grep -Eq 'PLACEHOLDER_HOST|PROTO://' "$TEMP_DIR/default.conf"; then
-    echo "Le template Nginx contient encore un placeholder" >&2
+    echo "Das Nginx-Template enthält noch einen Platzhalter" >&2
     exit 1
 fi
 
@@ -35,11 +35,11 @@ run_entrypoint "[2001:db8::1]" "http"
 grep -Fq 'server [2001:db8::1]:21118;' "$TEMP_DIR/default.conf"
 
 if run_entrypoint 'bad/host' 'http' >/dev/null 2>&1; then
-    echo "Un BACKEND_HOST invalide a été accepté" >&2
+    echo "Ein ungültiger BACKEND_HOST wurde akzeptiert" >&2
     exit 1
 fi
 
 if run_entrypoint 'rd.example.com' 'ftp' >/dev/null 2>&1; then
-    echo "Un PROTO invalide a été accepté" >&2
+    echo "Ein ungültiges PROTO wurde akzeptiert" >&2
     exit 1
 fi

@@ -1,20 +1,20 @@
 # syntax=docker/dockerfile:1.7
 
 ###############################################################################
-# Étape 1 — Build JS/TS (RustDesk front)
+# Stufe 1 — Build JS/TS (RustDesk-Frontend)
 ###############################################################################
 FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS js-build
 
-# ————— paramètres build ——————————————
+# ————— Build-Parameter ———————————————
 ARG RUSTDESK_REPO=MonsieurBiche/rustdesk-web-client
 ARG RUSTDESK_TAG=fix-build
-# Un SHA explicite prime sur la branche. Le commit attendu verrouille uniquement
-# la combinaison dépôt/branche par défaut et ne gêne pas les sources personnalisées.
+# Ein expliziter SHA hat Vorrang vor dem Branch. Der erwartete Commit nagelt nur
+# die Standardkombination aus Repository und Branch fest und stört eigene Quellen nicht.
 ARG RUSTDESK_COMMIT=
 ARG RUSTDESK_EXPECTED_COMMIT=525b5e561faf824850c71500adf463e4e0a504d4
 ARG ENABLE_WSS=true
 
-# ————— dépendances système minimales ————
+# ————— minimale Systemabhängigkeiten ————
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git python3 python-is-python3 protobuf-compiler ca-certificates \
@@ -22,8 +22,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-# ————— clone reproductible ——————————————
-# ─── clone repo + sous-modules ────────────────────────────────────────────────
+# ————— reproduzierbarer Clone ———————————
+# ─── Repo + Submodule klonen ──────────────────────────────────────────────────
 RUN git clone --branch "${RUSTDESK_TAG}" \
         --depth 1 \
         --recursive --shallow-submodules \
@@ -43,7 +43,7 @@ RUN target_commit="${RUSTDESK_COMMIT}" \
     fi \
  && git -C rustdesk submodule update --init --recursive --depth 1
 
-# ————— copie des sources JS ————————
+# ————— JS-Quellen kopieren —————————
 WORKDIR /src/rustdesk/flutter/web
 RUN if [ -d "v1" ]; then cp -a v1/* .; fi
 
@@ -67,13 +67,13 @@ RUN set -eu; \
 
 WORKDIR /src/rustdesk/flutter/web/js
 
-# ————— install Yarn + deps (cache BuildKit) —
+# ————— Yarn + Deps installieren (BuildKit-Cache) —
 RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
     corepack enable && \
     corepack prepare "yarn@3.2.0" --activate && \
     yarn install --immutable
 
-# ————— patch WSS éventuel —————————
+# ————— optionaler WSS-Patch ———————
 RUN if [ "$ENABLE_WSS" = "true" ]; then \
       find . -type f \( -name "*.ts" -o -name "*.js" \) \
         -exec sed -i 's#ws://#wss://#g' {} +; \
@@ -94,17 +94,17 @@ RUN HTML=/src/rustdesk/flutter/web/index.html && \
     "peers":[],\
     "server_config":{"customServers":[]}\
   };\
-  /* Balaye TOUTES les clés */\
+  /* Alle Keys durchgehen */\
   for(const k of Object.keys(localStorage)){\
     let v=localStorage.getItem(k);\
     if(v===null||v===""){localStorage.removeItem(k);continue;}\
-    /* Si valeur JSON potentielle */\
+    /* Potenziell ein JSON-Wert */\
     const f=v[0];\
     if(f==="{"||f==="["){\
       try{JSON.parse(v);}catch{localStorage.setItem(k,f==="["?"[]":"{}");}\
     }\
   }\
-  /* Injecte les valeurs par défaut manquantes */\
+  /* Fehlende Standardwerte setzen */\
   for(const [k,val] of Object.entries(defaults))\
     if(localStorage.getItem(k)===null)\
       localStorage.setItem(k,typeof val==="string"?val:JSON.stringify(val));\
@@ -113,11 +113,11 @@ RUN HTML=/src/rustdesk/flutter/web/index.html && \
     grep -q 'const defaults=' "$HTML"
 
 
-# ————— build JS ————————————————
+# ————— JS bauen ————————————————
 RUN yarn build
 
 ###############################################################################
-# Étape 2 — Build Flutter Web
+# Stufe 2 — Build Flutter Web
 ###############################################################################
 FROM debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df AS flutter-build
 
@@ -127,7 +127,7 @@ ENV FLUTTER_HOME=/opt/flutter
 ENV PATH="$FLUTTER_HOME/bin:$FLUTTER_HOME/bin/cache/dart-sdk/bin:$PATH"
 ENV RUSTFLAGS='--cfg getrandom_backend="js"'
 
-# ————— dépendances système ——————————
+# ————— Systemabhängigkeiten —————————
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bash curl git xz-utils zip unzip ca-certificates \
@@ -138,49 +138,49 @@ RUN apt-get update && \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# ————— Rust + target wasm (cache BuildKit) —
+# ————— Rust + wasm-Target (BuildKit-Cache) —
 RUN --mount=type=cache,target=/usr/local/cargo \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --no-modify-path --default-toolchain "${RUST_VERSION}" && \
     source "$HOME/.cargo/env" && \
     rustup target add wasm32-unknown-unknown
 
-# ————— Flutter SDK (cache BuildKit) —————
+# ————— Flutter SDK (BuildKit-Cache) —————
 RUN --mount=type=cache,target=/root/.cache/flutter \
     git clone --depth 1 --branch "${FLUTTER_VERSION}" \
         https://github.com/flutter/flutter.git "$FLUTTER_HOME" && \
     flutter config --enable-web --no-analytics && \
     flutter precache --web
 
-# ————— copie sources depuis js-build ————
+# ————— Quellen aus js-build kopieren ————
 COPY --from=js-build /src/rustdesk /build/rustdesk
 WORKDIR /build/rustdesk/flutter
 
-# 3) Dépendances web externes, versionnées avec ce dépôt
+# 3) Externe Web-Abhängigkeiten, versioniert mit diesem Repository
 COPY web_deps.tar.gz /tmp/web_deps.tar.gz
 RUN tar -xzf /tmp/web_deps.tar.gz -C web/ && \
     rm /tmp/web_deps.tar.gz
 
-# ─── build Flutter web (stage flutter-build) ────────────────────────────────
+# ─── Flutter-Web bauen (Stage flutter-build) ────────────────────────────────
 ENV FLUTTER_ALLOW_ROOT=1
 RUN --mount=type=cache,target=/usr/local/cargo \
     --mount=type=cache,target=/root/.cache/flutter \
     source "$HOME/.cargo/env" && \
     flutter build web --release && \
     \
-    # place le bundle Vite
+    # Vite-Bundle ablegen
     mkdir -p build/web/js && \
     cp -r web/js/dist build/web/js/
 
 ###############################################################################
-# Étape 3 — Runtime Nginx ultra-léger (adapté pour RustDesk Web v1)
+# Stufe 3 — Ultraleichte Nginx-Laufzeit (angepasst für RustDesk Web v1)
 ###############################################################################
 FROM nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa AS final
 
-# ————— assets statiques —————————————
+# ————— statische Assets —————————————
 COPY --from=flutter-build /build/rustdesk/flutter/build/web /usr/share/nginx/html
 
-# ————— configuration et entrypoint Nginx ————————————
+# ————— Nginx-Konfiguration und Entrypoint ———————————
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/nginx/entrypoint.sh /docker-entrypoint.sh
 RUN chmod 0755 /docker-entrypoint.sh
