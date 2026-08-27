@@ -125,6 +125,11 @@ docker build --check .
 
 Die CI führt dieselben Prüfungen aus, zusätzlich ShellCheck und Hadolint.
 
+## Funktionsanalyse
+
+Eine ausführliche Beschreibung der Architektur, der Build-Pipeline und
+sämtlicher Voraussetzungen steht in [docs/ANALYSE.md](docs/ANALYSE.md).
+
 ## Kubernetes
 
 Das historische Deployment-Beispiel für die Variante `v1` ist in [docs/KUBERNETES.md](docs/KUBERNETES.md) erhalten. Es muss an Ingress, Storage und Secrets der jeweiligen Umgebung angepasst werden.
