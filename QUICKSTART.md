@@ -1,4 +1,4 @@
-# Démarrage rapide
+# Schnellstart
 
 ## Docker Compose
 
@@ -11,9 +11,9 @@ docker compose up --build --detach
 curl --fail http://127.0.0.1:5000/
 ```
 
-Dans `.env`, configurez `BACKEND_HOST` avec un hôte joignable depuis le conteneur. Le service web est publié sur `WEB_PORT` et le port interne de l’image courante est `80`.
+Setzen Sie in `.env` die Variable `BACKEND_HOST` auf einen Host, der aus dem Container heraus erreichbar ist. Der Web-Dienst wird auf `WEB_PORT` veröffentlicht, der interne Port des aktuellen Images ist `80`.
 
-## Script de gestion
+## Verwaltungsskript
 
 ```bash
 ./build.sh config
@@ -22,9 +22,9 @@ Dans `.env`, configurez `BACKEND_HOST` avec un hôte joignable depuis le contene
 ./build.sh logs
 ```
 
-Le script propose également `image`, `start`, `stop`, `clean` et `compose`. Exécutez `./build.sh --help` pour la liste à jour.
+Das Skript bietet außerdem `image`, `start`, `stop`, `clean` und `compose`. Führen Sie `./build.sh --help` aus, um die aktuelle Liste zu sehen.
 
-## Variante v1 préconstruite
+## Vorgefertigte Variante v1
 
 ```bash
 docker run --detach \
@@ -37,4 +37,4 @@ docker run --detach \
   pmietlicki/docker-rustdesk-web-client:v1
 ```
 
-Consultez [README.md](README.md) pour les variables, les routes proxy et les procédures de validation.
+Details zu Variablen, Proxy-Routen und Validierungsschritten finden Sie in [README.md](README.md).

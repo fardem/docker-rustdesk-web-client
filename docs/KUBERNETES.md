@@ -1,6 +1,6 @@
-# Déploiement Kubernetes de la variante v1
+# Kubernetes-Deployment der Variante v1
 
-Cet exemple est conservé pour les utilisateurs de l’image `pmietlicki/docker-rustdesk-web-client:v1`. Adaptez les domaines, les secrets, la classe Ingress et les politiques de stockage à votre environnement avant déploiement.
+Dieses Beispiel ist für Nutzer des Images `pmietlicki/docker-rustdesk-web-client:v1` erhalten geblieben. Passen Sie Domains, Secrets, die Ingress-Klasse und die Storage-Richtlinien vor dem Deployment an Ihre Umgebung an.
 
 ```yaml
 # 1) Namespace ─────────────────────────────────────────────────────────
