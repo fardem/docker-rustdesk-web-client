@@ -1,6 +1,6 @@
-# Déploiement Kubernetes de la variante v1
+# Kubernetes-Deployment der Variante v1
 
-Cet exemple est conservé pour les utilisateurs de l’image `pmietlicki/docker-rustdesk-web-client:v1`. Adaptez les domaines, les secrets, la classe Ingress et les politiques de stockage à votre environnement avant déploiement.
+Dieses Beispiel ist für Nutzer des Images `pmietlicki/docker-rustdesk-web-client:v1` erhalten geblieben. Passen Sie Domains, Secrets, die Ingress-Klasse und die Storage-Richtlinien vor dem Deployment an Ihre Umgebung an.
 
 ```yaml
 # 1) Namespace ─────────────────────────────────────────────────────────
@@ -10,7 +10,7 @@ metadata:
   name: rustdesk
 
 ---
-# 2) PVC pour données / clés ─────────────────────────────────────────────
+# 2) PVC für Daten / Schlüssel ───────────────────────────────────────────
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -187,7 +187,7 @@ spec:
             periodSeconds: 10
 
 ---
-# 6) Service ClusterIP pour Web Client ─────────────────────────────────
+# 6) Service ClusterIP für Web Client ──────────────────────────────────
 apiVersion: v1
 kind: Service
 metadata:
@@ -203,7 +203,7 @@ spec:
       targetPort: 5000
       protocol: TCP
 ---
-# 7) Ingress unique WSS + HTTPS + Web UI ────────────────────────────────
+# 7) Einziger Ingress: WSS + HTTPS + Web UI ─────────────────────────────
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -236,7 +236,7 @@ spec:
             pathType: Prefix
             backend:
               service: { name: rustdesk-server, port: { name: client-port } }
-          # Tout le reste → Web Client
+          # Alles Übrige → Web Client
           - path: /
             pathType: Prefix
             backend:

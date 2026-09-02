@@ -9,13 +9,13 @@ config="${NGINX_CONFIG:-/etc/nginx/conf.d/default.conf}"
 case "$proto" in
     http|https) ;;
     *)
-        echo "PROTO doit valoir 'http' ou 'https' (valeur reçue: $proto)" >&2
+        echo "PROTO muss 'http' oder 'https' sein (erhaltener Wert: $proto)" >&2
         exit 64
         ;;
 esac
 
 if ! printf '%s\n' "$host" | grep -Eq '^([A-Za-z0-9._-]+|\[[0-9A-Fa-f:]+\])$'; then
-    echo "BACKEND_HOST doit être un nom d'hôte, une IPv4 ou une IPv6 entre crochets" >&2
+    echo "BACKEND_HOST muss ein Hostname, eine IPv4 oder eine IPv6 in eckigen Klammern sein" >&2
     exit 64
 fi
 

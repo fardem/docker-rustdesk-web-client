@@ -1,19 +1,19 @@
 # syntax=docker/dockerfile:1.7
 
-# EXPÉRIMENTAL : ce Dockerfile sert uniquement aux essais sur les versions
-# récentes de RustDesk/Flutter. Il n'est ni publié ni couvert par la CI.
+# EXPERIMENTELL: Dieses Dockerfile dient ausschließlich zum Ausprobieren neuerer
+# RustDesk-/Flutter-Versionen. Es wird weder veröffentlicht noch von der CI geprüft.
 
 ###############################################################################
-# Étape 1 — Build JS/TS (RustDesk front)
+# Stufe 1 — Build JS/TS (RustDesk-Frontend)
 ###############################################################################
 FROM node:20-slim AS js-build
 
-# ————— paramètres build ——————————————
+# ————— Build-Parameter ———————————————
 ARG RUSTDESK_REPO=rustdesk/rustdesk
 ARG RUSTDESK_TAG=1.4.0
 ARG ENABLE_WSS=false
 
-# ————— dépendances système minimales ————
+# ————— minimale Systemabhängigkeiten ————
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git python3 python-is-python3 protobuf-compiler ca-certificates \
@@ -47,16 +47,16 @@ RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
     corepack prepare "yarn@1.22.22" --activate && \
     yarn install --non-interactive --silent;
 
-# ————— patch WSS éventuel —————————
+# ————— optionaler WSS-Patch ———————
 RUN if [ "$ENABLE_WSS" = "true" ]; then \
       find . -name "*.ts" -o -name "*.js" | xargs sed -i 's#ws://#wss://#g'; \
     fi
 
-# ————— build JS ————————————————
+# ————— JS bauen ————————————————
 RUN yarn build
 
 ###############################################################################
-# Étape 2 — Build Flutter Web
+# Stufe 2 — Build Flutter Web
 ###############################################################################
 FROM debian:bookworm-slim AS flutter-build
 
@@ -65,7 +65,7 @@ ENV FLUTTER_HOME=/opt/flutter
 ENV PATH="$FLUTTER_HOME/bin:$FLUTTER_HOME/bin/cache/dart-sdk/bin:$PATH"
 ENV RUSTFLAGS='--cfg getrandom_backend="js"'
 
-# ————— dépendances système ——————————
+# ————— Systemabhängigkeiten —————————
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bash curl git xz-utils zip unzip ca-certificates \
@@ -96,21 +96,21 @@ WORKDIR /build/rustdesk/flutter
 RUN sed -i 's/extended_text: .*/extended_text: ^15.0.2/' pubspec.yaml && \
     FLUTTER_ALLOW_ROOT=1 flutter pub get --suppress-analytics
 
-# 2) Patch du plugin qr_code_scanner pour Flutter ≥3.29
-# ─── patch qr_code_scanner 1.0.1 pour Flutter ≥3.29 ─────────────────────────
+# 2) Plugin qr_code_scanner für Flutter ≥3.29 patchen
+# ─── qr_code_scanner 1.0.1 für Flutter ≥3.29 patchen ────────────────────────
 RUN set -eux; \
     find /root/.pub-cache/hosted -type f \
          -path '*/qr_code_scanner-*/lib/src/web/*.dart' \
       -exec sed -i "/import 'dart:ui'/a import 'dart:ui_web' as ui_web;" {} \; \
       -exec sed -i "s/ui\.platformViewRegistry/ui_web.platformViewRegistry/g" {} \;
 
-# 3) Dépendances web externes
+# 3) Externe Web-Abhängigkeiten
 RUN wget -qO /tmp/web_deps.tar.gz \
       https://github.com/pmietlicki/docker-rustdesk-web-client/raw/refs/heads/main/web_deps.tar.gz && \
     tar -xzf /tmp/web_deps.tar.gz -C web/ && \
     rm /tmp/web_deps.tar.gz
 
-# 4) (Optionnel) fix Material3 warnings
+# 4) (Optional) Material3-Warnungen beheben
 RUN grep -rl 'DialogTheme(' lib/ | xargs sed -i 's/DialogTheme(/DialogThemeData(/g' && \
     grep -rl 'TabBarTheme('  lib/ | xargs sed -i 's/TabBarTheme(/TabBarThemeData(/g'
 
@@ -121,7 +121,7 @@ RUN --mount=type=cache,target=/usr/local/cargo \
     . $HOME/.cargo/env && \
     flutter build web --release && \
     \
-    # place le bundle Vite
+    # Vite-Bundle ablegen
     mkdir -p build/web/js && \
     cp -r web/js/dist build/web/js/
 
@@ -135,17 +135,17 @@ RUN if [ -n "$ID_SERVER" ]; then \
     fi
 
 ###############################################################################
-# Étape 3 — Runtime Nginx ultra-léger (adapté pour RustDesk Web v1)
+# Stufe 3 — Ultraleichte Nginx-Laufzeit (angepasst für RustDesk Web v1)
 ###############################################################################
 FROM nginx:alpine AS final
 
-# ————— assets statiques —————————————
+# ————— statische Assets —————————————
 COPY --from=flutter-build /build/rustdesk/flutter/build/web /usr/share/nginx/html
 
 # ###############################################################################
-# # Patch PROTO / ID_SERVER / y3()  —  étape « final »
+# # Patch PROTO / ID_SERVER / y3()  —  Stufe „final“
 # ###############################################################################
-# ARG ID_SERVER="https://rs-us.rustdesk.com/ws/id"   # ← une barre / de moins !
+# ARG ID_SERVER="https://rs-us.rustdesk.com/ws/id"   # ← ein Schrägstrich / weniger!
 # ARG PROTO="https"
 
 # RUN <<BASH
@@ -153,19 +153,19 @@ COPY --from=flutter-build /build/rustdesk/flutter/build/web /usr/share/nginx/htm
 # js_dir="/usr/share/nginx/html/js"
 
 # # ---------------------------------------------------------------------------
-# # CAS A : ID_SERVER **défini**  →  on **remplace uniquement y3()**
+# # FALL A: ID_SERVER **gesetzt**  →  es wird **nur y3() ersetzt**
 # # ---------------------------------------------------------------------------
 # if [ -n "$ID_SERVER" ]; then
 #   find "$js_dir" -type f -name '*.js' \
 #     -exec perl -0777 -pi -e "s#function\\s+y3\\s*\\([^)]*\\)\\s*\\{[^}]*\\}#function y3(secure=!1){return '$ID_SERVER';}#smg" {} +
-#   echo "✔ y3() forcée → $ID_SERVER"
+#   echo "✔ y3() erzwungen → $ID_SERVER"
 #   exit 0
 # fi
 
 # # ---------------------------------------------------------------------------
-# # CAS B : ID_SERVER vide  →  serveurs publics
+# # FALL B: ID_SERVER leer  →  öffentliche Server
 # #         • Pi = \"<PROTO>://\"
-# #         • E4() ré-écrite (chemin /ws/id | /ws/relay, plus de :21118)
+# #         • E4() neu geschrieben (Pfad /ws/id | /ws/relay, kein :21118 mehr)
 # # ---------------------------------------------------------------------------
 
 # # 1)  Pi
@@ -177,11 +177,11 @@ COPY --from=flutter-build /build/rustdesk/flutter/build/web /usr/share/nginx/htm
 # find "$js_dir" -type f -name '*.js' \
 #   -exec perl -0777 -pi -e "s#function\\s+E4\\s*\\([^)]*\\)\\s*\\{[^}]*\\}#${replacement}#smg" {} +
 
-# echo "✔ Pi & E4() patchés → PROTO=${PROTO}  (serveurs publics)"
+# echo "✔ Pi & E4() gepatcht → PROTO=${PROTO}  (öffentliche Server)"
 # BASH
 
-# ————— configuration Nginx ————————————
-# On utilise un placeholder HOST qu’on remplacera à l’entrée
+# ————— Nginx-Konfiguration ————————————
+# Es wird ein HOST-Platzhalter verwendet, der beim Start ersetzt wird
 COPY <<'EOF' /etc/nginx/conf.d/default.conf
 upstream api {
     server PLACEHOLDER_HOST:21114;
@@ -205,7 +205,7 @@ server {
         add_header X-XSS-Protection "1; mode=block";
     }
 
-    # Proxy pour l’API RustDesk
+    # Proxy für die RustDesk-API
     location /api/ {
         proxy_pass PROTO://api;
         proxy_set_header Host $host;
@@ -213,7 +213,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # WebSocket pour l’ID server (port 21118)
+    # WebSocket für den ID-Server (Port 21118)
     location /ws/id {
         proxy_pass PROTO://ws_id;
         proxy_http_version 1.1;
@@ -222,7 +222,7 @@ server {
         proxy_set_header Host $host;
     }
 
-    # WebSocket pour le relay server (port 21119)
+    # WebSocket für den Relay-Server (Port 21119)
     location /ws/relay {
         proxy_pass PROTO://ws_relay;
         proxy_http_version 1.1;
@@ -231,7 +231,7 @@ server {
         proxy_set_header Host $host;
     }
 
-    # cache long des assets
+    # Langes Caching für Assets
     location ~* \.(js|css|wasm|png|jpg|jpeg|gif|svg|woff2?)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
@@ -239,15 +239,15 @@ server {
 }
 EOF
 
-# ————— entrypoint dynamique ————————
-# Remplace PLACEHOLDER_HOST par la valeur de BACKEND_HOST (ou localhost par défaut)
+# ————— dynamischer Entrypoint ——————
+# Ersetzt PLACEHOLDER_HOST durch den Wert von BACKEND_HOST (Standard: localhost)
 COPY <<'EOF' /docker-entrypoint.sh
 #!/bin/sh
 set -e
-# par défaut on pointe vers localhost
+# Standard: auf localhost zeigen
 HOST="${BACKEND_HOST:-127.0.0.1}"
 PROTO="${PROTO:-http}"
-# remplace dans la conf tous les upstreams
+# Alle Upstreams in der Konfiguration ersetzen
 sed -i "s/PLACEHOLDER_HOST/$HOST/g" /etc/nginx/conf.d/default.conf
 sed -i "s/PROTO/$PROTO/g" /etc/nginx/conf.d/default.conf
 exec nginx -g 'daemon off;'

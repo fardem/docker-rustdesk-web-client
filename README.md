@@ -1,17 +1,17 @@
-# RustDesk Web Client — images Docker
+# RustDesk Web Client — Docker-Images
 
-Ce dépôt construit et exécute le client web RustDesk selon deux variantes clairement séparées.
+Dieses Repository baut und betreibt den RustDesk-Web-Client in zwei klar getrennten Varianten.
 
-| Variante | Image | Port interne | Configuration runtime |
+| Variante | Image | Interner Port | Laufzeit-Konfiguration |
 |---|---|---:|---|
-| Courante | `pmietlicki/docker-rustdesk-web-client:latest` | `80` | Proxy Nginx via `BACKEND_HOST` et `PROTO` |
-| Héritée v1 | `pmietlicki/docker-rustdesk-web-client:v1` | `5000` | Variables RustDesk injectées dans `localStorage` |
+| Aktuell | `pmietlicki/docker-rustdesk-web-client:latest` | `80` | Nginx-Proxy über `BACKEND_HOST` und `PROTO` |
+| Alt (v1) | `pmietlicki/docker-rustdesk-web-client:v1` | `5000` | RustDesk-Variablen werden in den `localStorage` injiziert |
 
-La variante `v1` reste disponible pour les utilisateurs qui ont besoin de fournir directement les serveurs rendez-vous, relay et API au démarrage du conteneur.
+Die Variante `v1` bleibt für alle erhalten, die Rendezvous-, Relay- und API-Server direkt beim Start des Containers angeben müssen.
 
-## Démarrage de la variante courante
+## Start der aktuellen Variante
 
-Copiez la configuration d’exemple, puis adaptez au minimum le backend RustDesk :
+Kopieren Sie die Beispielkonfiguration und passen Sie mindestens das RustDesk-Backend an:
 
 ```bash
 cp config-examples.env .env
@@ -19,17 +19,17 @@ $EDITOR .env
 docker compose up --build --detach
 ```
 
-L’interface est ensuite disponible sur <http://localhost:5000>.
+Die Oberfläche ist anschließend unter <http://localhost:5000> erreichbar.
 
-Le conteneur Nginx n’expose que son port HTTP `80`. Les connexions API et WebSocket sont relayées sur ce même port :
+Der Nginx-Container stellt ausschließlich seinen HTTP-Port `80` bereit. API- und WebSocket-Verbindungen werden über denselben Port weitergeleitet:
 
-- `/api/` vers le port backend `21114` ;
-- `/ws/id` vers le port backend `21118` ;
-- `/ws/relay` vers le port backend `21119`.
+- `/api/` an den Backend-Port `21114`;
+- `/ws/id` an den Backend-Port `21118`;
+- `/ws/relay` an den Backend-Port `21119`.
 
-`BACKEND_HOST` doit être un nom d’hôte ou une adresse IP joignable depuis le conteneur, sans schéma ni port. Une IPv6 doit être placée entre crochets. `PROTO` accepte uniquement `http` ou `https` et décrit la connexion entre Nginx et le backend ; la terminaison TLS publique doit être assurée par un reverse proxy ou un Ingress.
+`BACKEND_HOST` muss ein Hostname oder eine IP-Adresse sein, die aus dem Container heraus erreichbar ist — ohne Schema und ohne Port. Eine IPv6-Adresse gehört in eckige Klammern. `PROTO` akzeptiert nur `http` oder `https` und beschreibt die Verbindung zwischen Nginx und dem Backend; die öffentliche TLS-Terminierung muss ein Reverse-Proxy oder ein Ingress übernehmen.
 
-Exécution directe de l’image publiée :
+Direkter Start des veröffentlichten Images:
 
 ```bash
 docker run --detach \
@@ -49,69 +49,69 @@ docker run --detach \
   --env CUSTOM_RENDEZVOUS_SERVER=rustdesk.example.com:21116 \
   --env RELAY_SERVER=rustdesk.example.com:21117 \
   --env API_SERVER=api.example.com \
-  --env KEY='votre-clé-publique' \
+  --env KEY='ihr-oeffentlicher-schluessel' \
   pmietlicki/docker-rustdesk-web-client:v1
 ```
 
-| Variable | Défaut | Description |
+| Variable | Standard | Beschreibung |
 |---|---|---|
-| `CUSTOM_RENDEZVOUS_SERVER` | vide | Serveur rendez-vous avec son port |
-| `RELAY_SERVER` | vide | Serveur relay avec son port |
-| `API_SERVER` | `api.rustdesk.com` | Serveur API |
-| `KEY` | vide | Clé publique RustDesk |
-| `PORT` | `5000` | Port HTTP interne de la variante v1 |
+| `CUSTOM_RENDEZVOUS_SERVER` | leer | Rendezvous-Server samt Port |
+| `RELAY_SERVER` | leer | Relay-Server samt Port |
+| `API_SERVER` | `api.rustdesk.com` | API-Server |
+| `KEY` | leer | Öffentlicher RustDesk-Schlüssel |
+| `PORT` | `5000` | Interner HTTP-Port der Variante v1 |
 
-Les valeurs sont sérialisées en JSON avant d’être écrites dans `env-config.js`, afin que les guillemets, antislashs et retours à la ligne ne puissent pas casser le JavaScript généré.
+Die Werte werden als JSON serialisiert, bevor sie in `env-config.js` geschrieben werden, damit Anführungszeichen, Backslashes und Zeilenumbrüche das erzeugte JavaScript nicht zerstören können.
 
-Construction locale de cette variante :
+Lokaler Build dieser Variante:
 
 ```bash
 docker build --file v1/Dockerfile --tag rustdesk-web-client:v1-local .
 ```
 
-## Construction locale
+## Lokaler Build
 
-Le script charge automatiquement `.env` sans l’exécuter comme du code shell.
+Das Skript lädt `.env` automatisch, ohne es als Shell-Code auszuführen.
 
 ```bash
-./build.sh config   # configuration effective
-./build.sh image    # construire uniquement l’image
-./build.sh build    # nettoyer, construire, démarrer et contrôler la santé
-./build.sh status   # état Docker réel
-./build.sh logs     # suivre les logs
+./build.sh config   # effektive Konfiguration
+./build.sh image    # nur das Image bauen
+./build.sh build    # aufräumen, bauen, starten und Health-Check ausführen
+./build.sh status   # tatsächlicher Docker-Status
+./build.sh logs     # Logs verfolgen
 ./build.sh stop
 ./build.sh start
 ./build.sh clean
-./build.sh compose  # même parcours via Docker Compose
+./build.sh compose  # derselbe Ablauf über Docker Compose
 ```
 
-Le build par défaut utilise `MonsieurBiche/rustdesk-web-client`, branche `fix-build`, verrouillée au commit indiqué dans `RUSTDESK_EXPECTED_COMMIT`. Une autre source peut être choisie avec `RUSTDESK_REPO` et `RUSTDESK_TAG`; `RUSTDESK_COMMIT` permet de verrouiller explicitement n’importe quelle source sur un SHA.
+Der Standard-Build verwendet `MonsieurBiche/rustdesk-web-client`, Branch `fix-build`, festgenagelt auf den Commit aus `RUSTDESK_EXPECTED_COMMIT`. Über `RUSTDESK_REPO` und `RUSTDESK_TAG` lässt sich eine andere Quelle wählen; `RUSTDESK_COMMIT` nagelt jede beliebige Quelle explizit auf einen SHA fest.
 
-L’archive `web_deps.tar.gz` est lue depuis le checkout courant : un build d’un commit donné n’utilise donc plus silencieusement l’archive d’une autre révision de `main`.
+Das Archiv `web_deps.tar.gz` wird aus dem aktuellen Checkout gelesen: Der Build eines bestimmten Commits verwendet damit nicht mehr stillschweigend das Archiv einer anderen Revision von `main`.
 
-## Configuration `.env`
+## Konfiguration `.env`
 
-Toutes les valeurs disponibles sont documentées dans [config-examples.env](config-examples.env). Les variables déjà définies dans l’environnement appelant ont priorité sur celles du fichier `.env`.
+Alle verfügbaren Werte sind in [config-examples.env](config-examples.env) dokumentiert. Variablen, die bereits in der aufrufenden Umgebung gesetzt sind, haben Vorrang vor denen aus der Datei `.env`.
 
-Principales valeurs :
+Die wichtigsten Werte:
 
-| Variable | Défaut | Usage |
+| Variable | Standard | Verwendung |
 |---|---|---|
-| `WEB_PORT` | `5000` | Port HTTP publié sur l’hôte |
-| `BACKEND_HOST` | `127.0.0.1` | Backend des routes API/WebSocket |
-| `PROTO` | `http` | Protocole du backend (`http` ou `https`) |
-| `RUSTDESK_REPO` | `MonsieurBiche/rustdesk-web-client` | Dépôt source |
-| `RUSTDESK_TAG` | `fix-build` | Branche ou tag source |
-| `RUSTDESK_COMMIT` | vide | SHA explicite facultatif |
-| `ENABLE_WSS` | `true` | Conversion des URL `ws://` en `wss://` pendant le build |
-| `FLUTTER_VERSION` | `3.22.1` | Version Flutter utilisée pour compiler |
-| `RUST_VERSION` | `1.97.0` | Toolchain Rust utilisée pour la cible WebAssembly |
+| `WEB_PORT` | `5000` | Auf dem Host veröffentlichter HTTP-Port |
+| `BACKEND_HOST` | `127.0.0.1` | Backend für die API-/WebSocket-Routen |
+| `PROTO` | `http` | Protokoll des Backends (`http` oder `https`) |
+| `RUSTDESK_REPO` | `MonsieurBiche/rustdesk-web-client` | Quell-Repository |
+| `RUSTDESK_TAG` | `fix-build` | Quell-Branch oder -Tag |
+| `RUSTDESK_COMMIT` | leer | Optionaler expliziter SHA |
+| `ENABLE_WSS` | `true` | Umwandlung von `ws://`- in `wss://`-URLs während des Builds |
+| `FLUTTER_VERSION` | `3.22.1` | Zum Kompilieren verwendete Flutter-Version |
+| `RUST_VERSION` | `1.97.0` | Rust-Toolchain für das WebAssembly-Ziel |
 
-Attention : `127.0.0.1` désigne le conteneur web lui-même. Fournissez un autre hôte si le backend RustDesk tourne dans un autre conteneur ou sur une autre machine.
+Achtung: `127.0.0.1` bezeichnet den Web-Container selbst. Geben Sie einen anderen Host an, wenn das RustDesk-Backend in einem anderen Container oder auf einer anderen Maschine läuft.
 
-## Validation
+## Validierung
 
-Les contrôles locaux rapides sont :
+Die schnellen lokalen Prüfungen sind:
 
 ```bash
 bash -n build.sh v1/server/server.sh tests/*.sh
@@ -123,13 +123,18 @@ docker compose config --quiet
 docker build --check .
 ```
 
-La CI exécute les mêmes contrôles, ainsi que ShellCheck et Hadolint.
+Die CI führt dieselben Prüfungen aus, zusätzlich ShellCheck und Hadolint.
+
+## Funktionsanalyse
+
+Eine ausführliche Beschreibung der Architektur, der Build-Pipeline und
+sämtlicher Voraussetzungen steht in [docs/ANALYSE.md](docs/ANALYSE.md).
 
 ## Kubernetes
 
-L’exemple historique de déploiement de la variante `v1` est conservé dans [docs/KUBERNETES.md](docs/KUBERNETES.md). Il doit être adapté à l’Ingress, au stockage et aux secrets de chaque environnement.
+Das historische Deployment-Beispiel für die Variante `v1` ist in [docs/KUBERNETES.md](docs/KUBERNETES.md) erhalten. Es muss an Ingress, Storage und Secrets der jeweiligen Umgebung angepasst werden.
 
-## Dépannage
+## Fehlersuche
 
 ```bash
 ./build.sh status
@@ -138,8 +143,8 @@ docker compose logs --tail=100 rustdesk-web
 curl --fail http://127.0.0.1:5000/
 ```
 
-Si les routes `/api/` ou `/ws/*` échouent alors que l’interface se charge, vérifiez que `BACKEND_HOST` est résolu depuis le conteneur et que les ports RustDesk concernés sont accessibles sur le réseau Docker.
+Wenn die Routen `/api/` oder `/ws/*` fehlschlagen, obwohl die Oberfläche lädt, prüfen Sie, ob `BACKEND_HOST` aus dem Container heraus aufgelöst wird und die betroffenen RustDesk-Ports im Docker-Netzwerk erreichbar sind.
 
-## Licence
+## Lizenz
 
-Ce dépôt suit la licence AGPL-3.0 du projet RustDesk. Consultez [LICENSE](LICENSE) ainsi que les licences incluses dans les dépendances distribuées.
+Dieses Repository folgt der AGPL-3.0-Lizenz des RustDesk-Projekts. Lesen Sie [LICENSE](LICENSE) sowie die Lizenzen der mitgelieferten Abhängigkeiten.
